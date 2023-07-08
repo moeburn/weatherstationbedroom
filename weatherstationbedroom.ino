@@ -86,13 +86,16 @@ float tempDS18;
 unsigned long lastmillis = 0;
 unsigned long millisBlynk = 0;
 unsigned long deltamillis = 0;
-unsigned long pagemillis = 0;
+unsigned long rgbmillis = 0;
 int pagetimer = 0;
 
 int xPos = 0;
 
 
-int menuValue, zebraR, zebraG, zebraB;
+int menuValue, zebraR, zebraG, zebraB, sliderValue;
+float  pmR, pmG, pmB;
+bool rgbON = true;
+
 
 
 
@@ -112,6 +115,12 @@ BLYNK_WRITE(V16)
      zebraG = param[1].asInt();
      zebraB = param[2].asInt();
 }
+
+BLYNK_WRITE(V17)
+{
+   sliderValue = param.asInt(); // assigning incoming value from pin V1 to a variable
+}
+
 
 BLYNK_WRITE(V14)
 {terminal.flush();}
@@ -141,21 +150,53 @@ void setup() { //This is where all Arduinos store the on-bootup code
                 Adafruit_BME280::SAMPLING_X1, // humidity
                 Adafruit_BME280::FILTER_OFF   );
                 
-  pagemillis = millis();
+
 }
 
 void loop() { //This is where all Arduinos store their "do this all the time" code
+    pms7003.Read();
 
-
-
-pms7003.Read();
-
-     Blynk.run();
+    Blynk.run();
+     
+    pmG = 55 - sliderValue;
+    if (pmG < 0) {pmG = 0;}
+    pmG *= (255.0/55.0);
+    if (pmG > 255) {pmG = 255;}
+    
+    pmR = sliderValue;
+    if (pmR < 0) {pmR = 0;}
+    pmR *= (255.0/55.0);
+    if (pmR > 255) {pmR = 255;}
+    
+    pmB = sliderValue - 100;
+    if (pmB < 0) {pmB = 0;}
+    pmB *= (255.0/55.0);
+    if (pmB > 255) {pmB = 255;}
+    
+        Blynk.virtualWrite(V18, pmR);
+        Blynk.virtualWrite(V19, pmG);
+        Blynk.virtualWrite(V20, pmB);
   
     if (menuValue == 1) {RGB.color(0, 0, 0);}
+    if (menuValue == 2) 
+        {
+            if (rgbON == true) {RGB.color(pmR, pmG, pmB);}
+            else {RGB.color(0, 0, 0);}
+        if (sliderValue > 55)
+            {
+                if (millis() - rgbmillis >= 500)
+                {
+                    if (rgbON) {rgbON = false;}
+                    else {rgbON = true;}
+                    rgbmillis = millis();
+                }
+            }
+        else rgbON = true;
+
+        }
     if (menuValue == 3) {RGB.color(zebraR, zebraG, zebraB);}
   
-  
+
   
     if ( (millis() - millisBlynk >= 30000) || (firstvalue == 1) ) //if it's been 30 seconds OR we just booted up, skip the 30 second wait
     {
