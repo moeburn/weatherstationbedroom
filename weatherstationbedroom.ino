@@ -116,10 +116,10 @@ BLYNK_WRITE(V16)
      zebraB = param[2].asInt();
 }
 
-BLYNK_WRITE(V17)
+/*BLYNK_WRITE(V17)
 {
    sliderValue = param.asInt(); // assigning incoming value from pin V1 to a variable
-}
+}*/
 
 
 BLYNK_WRITE(V14)
@@ -173,10 +173,7 @@ void loop() { //This is where all Arduinos store their "do this all the time" co
     pmB *= (255.0/55.0);
     if (pmB > 255) {pmB = 255;}
     
-        Blynk.virtualWrite(V18, pmR);
-        Blynk.virtualWrite(V19, pmG);
-        Blynk.virtualWrite(V20, pmB);
-  
+
     if (menuValue == 1) {RGB.color(0, 0, 0);}
     if (menuValue == 2) 
         {
@@ -224,7 +221,7 @@ void loop() { //This is where all Arduinos store their "do this all the time" co
             if (new2p5 - old2p5 > 50) {new2p5 = old2p5;}
             if (new10 - old10 > 50) {new10 = old10;}
         }
-        
+        sliderValue = new2p5; //set RGB value to pm25 value
         Blynk.virtualWrite(V5, new1p0);
         Blynk.virtualWrite(V6, new2p5);
         Blynk.virtualWrite(V7, new10);
@@ -234,6 +231,11 @@ void loop() { //This is where all Arduinos store their "do this all the time" co
         Blynk.virtualWrite(V11, pms7003.GetData(pms7003.count2_5um));
         Blynk.virtualWrite(V12, pms7003.GetData(pms7003.count5um));
         Blynk.virtualWrite(V13, pms7003.GetData(pms7003.count10um));
+  
+        Blynk.virtualWrite(V18, pmR); //debug for pm25 RGB LED
+        Blynk.virtualWrite(V19, pmG);
+        Blynk.virtualWrite(V20, pmB);
+  
         terminal.print("Last update: ");
         terminal.print(Time.timeStr()); //print current time to Blynk terminal
         terminal.println("");
