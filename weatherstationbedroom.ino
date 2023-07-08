@@ -135,6 +135,7 @@ void setup() { //This is where all Arduinos store the on-bootup code
   
   delay(5000); //Required to stabilize wifi
   Blynk.begin(auth, IPAddress(192,168,50,197), 8080);
+  Time.zone(-4);
                 terminal.clear();
 				terminal.println("-----------------------------");
 				terminal.println("STARTING BEDROOM BLYNK SERVER");
@@ -142,7 +143,7 @@ void setup() { //This is where all Arduinos store the on-bootup code
                 terminal.println("-----------------------------");
 				terminal.flush();
   
-  Time.zone(-5);
+  
   bme.begin(0x76);
   bme.setSampling(Adafruit_BME280::MODE_FORCED,
                 Adafruit_BME280::SAMPLING_X1, // temperature
@@ -164,33 +165,37 @@ void loop() { //This is where all Arduinos store their "do this all the time" co
     if (menuValue == 1) {RGB.color(0, 0, 0);}
     if (menuValue == 2) 
         {
-            pmG = 55 - sliderValue;
-            if (pmG < 0) {pmG = 0;}
-            pmG *= (255.0/55.0);
-            if (pmG > 255) {pmG = 255;}
-            
-            pmR = sliderValue;
-            if (pmR < 0) {pmR = 0;}
-            pmR *= (255.0/55.0);
-            if (pmR > 255) {pmR = 255;}
-            
-            pmB = sliderValue - 100;
-            if (pmB < 0) {pmB = 0;}
-            pmB *= (255.0/55.0);
-            if (pmB > 255) {pmB = 255;}
-            
-            if (rgbON == true) {RGB.color(pmR, pmG, pmB);}
-            else {RGB.color(0, 0, 0);}
-            if (sliderValue > 55)
-                {
-                    if (millis() - rgbmillis >= 500)
+        if (Time.hour() > 7)
+            {
+                pmG = 55 - sliderValue;
+                if (pmG < 0) {pmG = 0;}
+                pmG *= (255.0/55.0);
+                if (pmG > 255) {pmG = 255;}
+                
+                pmR = sliderValue;
+                if (pmR < 0) {pmR = 0;}
+                pmR *= (255.0/55.0);
+                if (pmR > 255) {pmR = 255;}
+                
+                pmB = sliderValue - 100;
+                if (pmB < 0) {pmB = 0;}
+                pmB *= (255.0/55.0);
+                if (pmB > 255) {pmB = 255;}
+                
+                if (rgbON == true) {RGB.color(pmR, pmG, pmB);}
+                else {RGB.color(0, 0, 0);}
+                if (sliderValue > 55)
                     {
-                        if (rgbON) {rgbON = false;}
-                        else {rgbON = true;}
-                        rgbmillis = millis();
+                        if (millis() - rgbmillis >= 500)
+                        {
+                            if (rgbON) {rgbON = false;}
+                            else {rgbON = true;}
+                            rgbmillis = millis();
+                        }
                     }
-                }
-            else rgbON = true;
+                else rgbON = true;
+            }
+            else {RGB.color(0, 0, 0);}
         }
     if (menuValue == 3) {RGB.color(zebraR, zebraG, zebraB);}
   
