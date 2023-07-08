@@ -158,38 +158,39 @@ void loop() { //This is where all Arduinos store their "do this all the time" co
 
     Blynk.run();
      
-    pmG = 55 - sliderValue;
-    if (pmG < 0) {pmG = 0;}
-    pmG *= (255.0/55.0);
-    if (pmG > 255) {pmG = 255;}
-    
-    pmR = sliderValue;
-    if (pmR < 0) {pmR = 0;}
-    pmR *= (255.0/55.0);
-    if (pmR > 255) {pmR = 255;}
-    
-    pmB = sliderValue - 100;
-    if (pmB < 0) {pmB = 0;}
-    pmB *= (255.0/55.0);
-    if (pmB > 255) {pmB = 255;}
+
     
 
     if (menuValue == 1) {RGB.color(0, 0, 0);}
     if (menuValue == 2) 
         {
+            pmG = 55 - sliderValue;
+            if (pmG < 0) {pmG = 0;}
+            pmG *= (255.0/55.0);
+            if (pmG > 255) {pmG = 255;}
+            
+            pmR = sliderValue;
+            if (pmR < 0) {pmR = 0;}
+            pmR *= (255.0/55.0);
+            if (pmR > 255) {pmR = 255;}
+            
+            pmB = sliderValue - 100;
+            if (pmB < 0) {pmB = 0;}
+            pmB *= (255.0/55.0);
+            if (pmB > 255) {pmB = 255;}
+            
             if (rgbON == true) {RGB.color(pmR, pmG, pmB);}
             else {RGB.color(0, 0, 0);}
-        if (sliderValue > 55)
-            {
-                if (millis() - rgbmillis >= 500)
+            if (sliderValue > 55)
                 {
-                    if (rgbON) {rgbON = false;}
-                    else {rgbON = true;}
-                    rgbmillis = millis();
+                    if (millis() - rgbmillis >= 500)
+                    {
+                        if (rgbON) {rgbON = false;}
+                        else {rgbON = true;}
+                        rgbmillis = millis();
+                    }
                 }
-            }
-        else rgbON = true;
-
+            else rgbON = true;
         }
     if (menuValue == 3) {RGB.color(zebraR, zebraG, zebraB);}
   
