@@ -45,7 +45,7 @@
 
 //DHT dht(DHTPIN, DHTTYPE);
 //int loopCount;
-
+WidgetTerminal terminal(V14); //terminal widget
 
 int timerBlynk = TTU;
 
@@ -114,9 +114,11 @@ void setup() { //This is where all Arduinos store the on-bootup code
 //	dht.begin();
   
   delay(5000); //Required to stabilize wifi
-  
-
-  
+				terminal.println("-----------------------------");
+				terminal.println("STARTING BEDROOM BLYNK SERVER");
+				terminal.println(Time.timeStr()); //print current time to Blynk terminal
+                terminal.println("-----------------------------");
+				terminal.flush();
   Blynk.begin(auth, IPAddress(192,168,50,197), 8080);
   Time.zone(-5);
   bme.begin(0x76);
@@ -183,13 +185,15 @@ pms7003.Read();
 				Blynk.virtualWrite(V11, pms7003.GetData(pms7003.count2_5um));
 				Blynk.virtualWrite(V12, pms7003.GetData(pms7003.count5um));
 				Blynk.virtualWrite(V13, pms7003.GetData(pms7003.count10um));
+				terminal.print("Last update: ");
+				terminal.print(Time.timeStr()); //print current time to Blynk terminal
+				terminal.println("");
+				terminal.flush();
 				old1p0 = new1p0;
 				old2p5 = new2p5;
 				old10 = new10;
 				firstvalue = 0;
-			//	if (pms7003.GetData(pms7003.pm2_5) > 30) {Blynk.notify ("PM2.5 > 30ppm");}
-			//	Blynk.virtualWrite(V14, amtemp);
-			//	Blynk.virtualWrite(V15, amhum);
+
       
       }
   }
