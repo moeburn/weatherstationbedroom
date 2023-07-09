@@ -92,7 +92,8 @@ int pagetimer = 0;
 int xPos = 0;
 
 
-int menuValue, zebraR, zebraG, zebraB, sliderValue;
+int zebraR, zebraG, zebraB, sliderValue;
+int menuValue = 2;
 float  pmR, pmG, pmB;
 bool rgbON = true;
 
@@ -130,7 +131,7 @@ void setup() { //This is where all Arduinos store the on-bootup code
   Serial.begin();
 
   RGB.control(true); //Turn off Photon's pulsing blue LED
-  
+
 //	dht.begin();
   
   delay(5000); //Required to stabilize wifi
@@ -140,9 +141,14 @@ void setup() { //This is where all Arduinos store the on-bootup code
 				terminal.println("-----------------------------");
 				terminal.println("STARTING BEDROOM BLYNK SERVER");
 				terminal.println(Time.timeStr()); //print current time to Blynk terminal
+				terminal.print("Default LED brightness: ");
+				terminal.println(RGB.brightness());
+				RGB.brightness(255);
+				terminal.print("Adjusted LED brightness: ");
+				terminal.println(RGB.brightness());
                 terminal.println("-----------------------------");
 				terminal.flush();
-  
+
   
   bme.begin(0x76);
   bme.setSampling(Adafruit_BME280::MODE_FORCED,
@@ -207,7 +213,7 @@ void loop() { //This is where all Arduinos store their "do this all the time" co
         tempBME = (bme.readTemperature() + tempoffset);
         presBME = (bme.readPressure() / 100.0F);
         humBME = bme.readHumidity();
-        abshumBME = (6.112 * pow(2.71828, ((17.67 * tempBME)/(tempBME+243.5))) * humBME * 2.1674)/(273.15 + tempBME);
+        abshumBME = (6.112 * pow(2.71828, ((17.67 * tempBME)/(tempBME + 243.5))) * humBME * 2.1674)/(273.15 + tempBME);
         millisBlynk = millis();
         
         Blynk.virtualWrite(V1, presBME);
