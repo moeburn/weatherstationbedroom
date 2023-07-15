@@ -1,7 +1,7 @@
 // This #include statement was automatically added by the Particle IDE.
 //#include <Adafruit_DHT_Particle.h>
 
-
+ 
 //#define DHTPIN D2     // what pin we're connected to
 
 // Uncomment whatever type you're using!
