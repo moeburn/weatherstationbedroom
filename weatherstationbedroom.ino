@@ -27,9 +27,9 @@
 #include <Average.h>
 #include "rgb-controls.h"
 using namespace RGBControls;
-int LEDApin1 = D3;
-int LEDApin2 = A5;
-int LEDApin3 = A7;
+int LEDApin3 = A4;
+int LEDApin1 = A5;
+int LEDApin2 = A7;
 
 
 //Led PMled2(LEDBpin1, LEDBpin2, LEDBpin3);
@@ -413,6 +413,7 @@ delay(leddelay);
 digitalWrite(LEDApin1, LOW);
 digitalWrite(LEDApin2, LOW);
 digitalWrite(LEDApin3, LOW);
+	
 }
 
 
