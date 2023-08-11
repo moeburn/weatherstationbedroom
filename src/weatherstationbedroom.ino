@@ -25,14 +25,36 @@
 //#include "Adafruit_BME280.h"
 #include "config/bme680_iaq_33v_3s_28d/bsec_iaq.h"
 #include <Average.h>
+#include "rgb-controls.h"
+using namespace RGBControls;
+//int LEDApin3 = A4; //for SMD RGB LED
+//int LEDApin1 = A5;
+//int LEDApin2 = A7;
+
+int LEDApin3 = A4;
+int LEDApin2 = A5;
+int LEDApin1 = A7;
+
+
+//Led PMled2(LEDBpin1, LEDBpin2, LEDBpin3);
+Led PMled1(LEDApin1, LEDApin2, LEDApin3);
+Color red1(255, 0, 0);
+Color green1(0, 255, 0);
+Color blue1(0, 0, 255);
+Color colors[3] = { red1, green1, blue1 };
+
 
 Average<float> pm1Avg(30);
 Average<float> pm25Avg(30);
 Average<float> pm10Avg(30);
+Average<float> wifiAvg(30);
+Average<float> a0Avg(30);
 
 
 //const uint8_t bsec_config_iaq[] = {2,9,4,1,61,0,0,0,0,0,0,0,182,1,0,0,52,0,1,0,0,192,168,71,64,49,119,76,0,0,97,69,0,0,97,69,137,65,0,191,205,204,204,190,0,0,64,191,225,122,148,190,10,0,3,0,216,85,0,100,0,0,96,64,23,183,209,56,28,0,2,0,0,244,1,150,0,50,0,0,128,64,0,0,32,65,144,1,0,0,112,65,0,0,0,63,16,0,3,0,10,215,163,60,10,215,35,59,10,215,35,59,13,0,5,0,0,0,0,0,1,35,41,29,86,88,0,9,0,229,208,34,62,0,0,0,0,0,0,0,0,218,27,156,62,225,11,67,64,0,0,160,64,0,0,0,0,0,0,0,0,94,75,72,189,93,254,159,64,66,62,160,191,0,0,0,0,0,0,0,0,33,31,180,190,138,176,97,64,65,241,99,190,0,0,0,0,0,0,0,0,167,121,71,61,165,189,41,192,184,30,189,64,12,0,10,0,0,0,0,0,0,0,0,0,229,0,254,0,2,1,5,48,117,100,0,44,1,112,23,151,7,132,3,197,0,92,4,144,1,64,1,64,1,144,1,48,117,48,117,48,117,48,117,100,0,100,0,100,0,48,117,48,117,48,117,100,0,100,0,48,117,48,117,100,0,100,0,100,0,100,0,48,117,48,117,48,117,100,0,100,0,100,0,48,117,48,117,100,0,100,0,44,1,44,1,44,1,44,1,44,1,44,1,44,1,44,1,44,1,44,1,44,1,44,1,44,1,44,1,8,7,8,7,8,7,8,7,8,7,8,7,8,7,8,7,8,7,8,7,8,7,8,7,8,7,8,7,112,23,112,23,112,23,112,23,112,23,112,23,112,23,112,23,112,23,112,23,112,23,112,23,112,23,112,23,255,255,255,255,255,255,255,255,220,5,220,5,220,5,255,255,255,255,255,255,220,5,220,5,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,255,44,1,0,0,0,0,159,253,0,0};
 #define STATE_SAVE_PERIOD	UINT32_C(360 * 60 * 1000)
+#define USE_EEPROM
+
 
 /**
  * @brief : This function checks the BSEC status, prints the respective error code. Halts in case of error
@@ -66,8 +88,8 @@ bool loadState(Bsec2 bsec);
  */
 bool saveState(Bsec2 bsec);
 void errLeds(void);
-void updateState(void);
-void loadState(void);
+//void updateState(void);
+//void loadState(void);
 Bsec2 iaqSensor;
 
 static uint8_t bsecState[BSEC_MAX_STATE_BLOB_SIZE];
@@ -88,13 +110,21 @@ String output;
 //DHT dht(DHTPIN, DHTTYPE);
 //int loopCount;
 WidgetTerminal terminal(V14); //terminal widget
+WidgetBridge bridge1(V70);
+
+char auth[] = "eT_7FL7IUpqonthsAr-58uTK_-su_GYy"; //BLYNK
+char remoteAuth[] = "pO--Yj8ksH2fjJLMW6yW9trkHBhd9-wc";
+
+BLYNK_CONNECTED() {
+  bridge1.setAuthToken (remoteAuth);
+}
 
 int timerBlynk = TTU;
 
 bool drawChart = FALSE;
 
 //char auth[] = "81f749960ec34003bbab37a5b4ffa61e"; //BLYNK
-char auth[] = "eT_7FL7IUpqonthsAr-58uTK_-su_GYy"; //BLYNK
+
 
 //Adafruit_BME280 bme; // I2C
 
@@ -115,7 +145,7 @@ int historycount = history;
 
 
 float sensor;
-
+float bridgedata;
 
 
 int last_pushed = 0; // global variable
@@ -138,13 +168,26 @@ int xPos = 0;
 int zebraR, zebraG, zebraB, sliderValue;
 int menuValue = 2;
 float  pmR, pmG, pmB;
+float  pmR2, pmG2, pmB2;
 bool rgbON = true;
+float LEDbrightness = 6; 
+float RGBbrightness = 6; 
+int sliderboostbrightness = 0; 
+int redboost = 19;
+int sliderLEDbrightness = 38; 
+int sliderRGBbrightness = 18;
 
+    int leddelay = 1000;
 
-
+bool rapidfire = false;
 
 
 PMS7003Serial<USARTSerial> pms7003(Serial1, D6);
+
+BLYNK_WRITE(V61){
+    float pinData = param.asFloat();
+    bridgedata = pinData;
+}
 
 
 
@@ -162,7 +205,51 @@ BLYNK_WRITE(V16)
 
 BLYNK_WRITE(V17)
 {
-      RGB.brightness(param.asInt()); // assigning incoming value from pin V1 to a variable   
+    sliderRGBbrightness = param.asInt();
+              if (Time.hour() < 7)
+            {
+                RGB.brightness(0);
+                LEDbrightness = 0;
+            }
+        else
+        {
+            RGBbrightness = (((analogRead(A0) * 0.0005) * sliderRGBbrightness) + 1);
+            if (RGBbrightness > 255) {RGBbrightness = 255;}
+            LEDbrightness = ((analogRead(A0) * 0.0005) * sliderLEDbrightness) + sliderboostbrightness;
+            if (LEDbrightness > 100) {LEDbrightness = 100;}
+            if (LEDbrightness < 2) {LEDbrightness = 2;}
+            RGB.brightness(RGBbrightness);
+        }
+}
+
+/*BLYNK_WRITE(V34)
+{
+    sliderboostbrightness = param.asInt();
+}
+
+BLYNK_WRITE(V35)
+{
+    redboost = param.asInt();
+}*/
+
+
+BLYNK_WRITE(V21)
+{
+    sliderLEDbrightness = param.asInt();
+              if (Time.hour() < 7)
+            {
+                RGB.brightness(0);
+                LEDbrightness = 0;
+            }
+        else
+        {
+            RGBbrightness = (((analogRead(A0) * 0.0005) * sliderRGBbrightness) + 1);
+            if (RGBbrightness > 255) {RGBbrightness = 255;}
+            LEDbrightness = ((analogRead(A0) * 0.0005) * sliderLEDbrightness) + sliderboostbrightness;
+            if (LEDbrightness > 100) {LEDbrightness = 100;}
+            if (LEDbrightness < 2) {LEDbrightness = 2;}
+            RGB.brightness(RGBbrightness);
+        }
 }
 
 
@@ -176,6 +263,16 @@ BLYNK_WRITE(V14)
     terminal.println("wets");
     terminal.println("particles");
     terminal.println("bsec");
+    terminal.println("erase");
+    terminal.println("a1");
+    terminal.println("a2");
+    terminal.println("a3");
+    terminal.println("rapidon");
+    terminal.println("rapidoff");
+    terminal.println("redboost+");
+    terminal.println("redboost-");
+    terminal.println("connect");
+    terminal.println("disconnect");
      terminal.println("==End of list.==");
     }
         if (String("wifi") == param.asStr()) 
@@ -186,6 +283,16 @@ BLYNK_WRITE(V14)
         terminal.println(WiFi.localIP());
         terminal.print("Signal strength: ");
         terminal.println(WiFi.RSSI());
+    }
+if (String("erase") == param.asStr()) 
+        {
+        /* Erase the EEPROM with zeroes */
+        terminal.println("Erasing EEPROM");
+
+        for (uint8_t i = 0; i <= BSEC_MAX_STATE_BLOB_SIZE; i++)
+            EEPROM.write(i, 0);
+        terminal.flush();
+        //EEPROM.commit();
     }
 
 
@@ -246,13 +353,128 @@ BLYNK_WRITE(V14)
         terminal.print(",,,");
         terminal.println(bmegasPercentage);
     }
+    if (String("a1") == param.asStr()) {
+        analogWrite(LEDApin1, 255);
+        delay(leddelay);
+        analogWrite(LEDApin1, 0);
+        terminal.println("a1");
+    }
+        if (String("a2") == param.asStr()) {
+        analogWrite(LEDApin2, 255);
+        delay(leddelay);
+        analogWrite(LEDApin2, 0);
+        terminal.println("a2");
+    }
+        if (String("a3") == param.asStr()) {
+        analogWrite(LEDApin3, 255);
+        delay(leddelay);
+        analogWrite(LEDApin3, 0);
+        terminal.println("a3");
+    }
+    if (String("rapidon") == param.asStr()) {
+        rapidfire = true;
+    }
+    if (String("ledcycle") == param.asStr()) {
+        ledcycle();
+    }
+
+    if (String("connect") == param.asStr()) {
+        Particle.connect();
+        terminal.print("> Connecting to Particle cloud...");
+        while (!Particle.connected()) {
+            terminal.print(".");
+            terminal.flush();
+            delay(500);
+            }
+        terminal.println("connected.");
+    }
+    if (String("disconnect") == param.asStr()) {
+        Particle.disconnect();
+        terminal.println("> Disconnecting from Particle cloud.");
+    }
+
+    
+
+    if (String("rapidoff") == param.asStr()) {
+      rapidfire = false;
+    }
+
+    if (String("redboost+") == param.asStr()) {
+      redboost++;
+      terminal.print("> redboost is now [");
+      terminal.print(redboost);
+      terminal.println("]");
+    }
+    if (String("redboost-") == param.asStr()) {
+      redboost--;
+      terminal.print("> redboost is now [");
+      terminal.print(redboost);
+      terminal.println("]");
+    }
     
     terminal.flush();
 
 }
 
+void ledcycle(void) {
+
+analogWrite(LEDApin1, 255);
+delay(leddelay);
+analogWrite(LEDApin1, 0);
+
+analogWrite(LEDApin2, 255);
+delay(leddelay);
+analogWrite(LEDApin2, 0);
+
+analogWrite(LEDApin3, 255);
+delay(leddelay);
+analogWrite(LEDApin3, 0);
+
+analogWrite(LEDApin1, 255);
+analogWrite(LEDApin2, 255);
+delay(leddelay);
+analogWrite(LEDApin1, 0);
+analogWrite(LEDApin2, 0);
+
+analogWrite(LEDApin1, 255);
+analogWrite(LEDApin3, 255);
+delay(leddelay);
+analogWrite(LEDApin1, 0);
+analogWrite(LEDApin3, 0);
+
+analogWrite(LEDApin2, 255);
+analogWrite(LEDApin3, 255);
+delay(leddelay);
+analogWrite(LEDApin2, 0);
+analogWrite(LEDApin3, 0);
+
+analogWrite(LEDApin1, 255);
+analogWrite(LEDApin2, 255);
+analogWrite(LEDApin3, 255);
+delay(leddelay);
+analogWrite(LEDApin1, 0);
+analogWrite(LEDApin2, 0);
+analogWrite(LEDApin3, 0);
+
+digitalWrite(LEDApin1, HIGH);
+digitalWrite(LEDApin2, HIGH);
+digitalWrite(LEDApin3, HIGH);
+delay(leddelay);
+digitalWrite(LEDApin1, LOW);
+digitalWrite(LEDApin2, LOW);
+digitalWrite(LEDApin3, LOW);
+	
+}
+
+SYSTEM_MODE(SEMI_AUTOMATIC);
+SYSTEM_THREAD(ENABLED);
+
 
 void setup() { //This is where all Arduinos store the on-bootup code
+ WiFi.on();
+  WiFi.connect() ;
+  while (WiFi.connecting()){}
+  Particle.disconnect();
   Serial.begin();
   Wire.begin();
     iaqSensor.begin(BME68X_I2C_ADDR_HIGH, Wire);
@@ -260,17 +482,25 @@ void setup() { //This is where all Arduinos store the on-bootup code
 
 //	dht.begin();
   
-  delay(5000); //Required to stabilize wifi
-  
-  Blynk.begin(auth, IPAddress(192,168,50,197), 8080);
+   //Required to stabilize wifi
+    pinMode(LEDApin1, OUTPUT);
+    pinMode(LEDApin2, OUTPUT);
+    pinMode(LEDApin3, OUTPUT);
+
+
+
+  Blynk.begin(auth, IPAddress(216,110,224,105), 8080);
   Time.zone(-4);
+  delay(2000);
   output = "\nBSEC library version " + String(iaqSensor.version.major) + "." + String(iaqSensor.version.minor) + "." + String(iaqSensor.version.major_bugfix) + "." + String(iaqSensor.version.minor_bugfix);
-                terminal.clear();
-				terminal.println("-----------------------------");
-				terminal.println("STARTING BEDROOM BLYNK SERVER");
+                //terminal.clear();
+				terminal.println("----------------------------------");
+				terminal.println("STARTING BEDROOM BLYNK SERVER v1.3");
                 terminal.println(output);
 				terminal.println(Time.timeStr()); //print current time to Blynk terminal
-                terminal.println("-----------------------------");
+                terminal.println("----------------------------------");
+                terminal.println("Type 'connect' to flash firmware");
+                terminal.println("Type 'help' for a list of commands");
 				terminal.flush();
 
     bsec_virtual_sensor_t sensorList[13] = {
@@ -292,8 +522,8 @@ void setup() { //This is where all Arduinos store the on-bootup code
   
   iaqSensor.setConfig(bsec_config_iaq);
   
-  iaqSensor.setTemperatureOffset(0.5);
-   loadState();
+  iaqSensor.setTemperatureOffset(1.0);
+   loadState(iaqSensor);
   iaqSensor.updateSubscription(sensorList, 13, BSEC_SAMPLE_RATE_LP);
   
   iaqSensor.attachCallback(newDataCallback);
@@ -303,12 +533,13 @@ void setup() { //This is where all Arduinos store the on-bootup code
                 Adafruit_BME280::SAMPLING_X1, // pressure
                 Adafruit_BME280::SAMPLING_X1, // humidity
                 Adafruit_BME280::FILTER_OFF   );*/
-                
+ledcycle();
 
 }
 
 unsigned long last = 0;
 unsigned long last_pm_reading = 0;
+unsigned long samplemillis = 0;
 
 void loop() { //This is where all Arduinos store their "do this all the time" code
 unsigned long now = millis();
@@ -318,12 +549,20 @@ unsigned long now = millis();
   }
   
     Blynk.run();
+       
+  
+    if (rapidfire) 
+    {
+        Blynk.virtualWrite(V69, analogRead(A0));
+    }
+
+
+        
 
     if (menuValue == 1) {RGB.color(0, 0, 0);}
     if (menuValue == 2) 
         {
-        if (Time.hour() > 7)
-            {
+
                 pmG = 55 - sliderValue;
                 if (pmG < 0) {pmG = 0;}
                 pmG *= (255.0/55.0);
@@ -338,10 +577,36 @@ unsigned long now = millis();
                 if (pmB < 0) {pmB = 0;}
                 pmB *= (255.0/55.0);
                 if (pmB > 255) {pmB = 255;}
+
+                pmG2 = 55 - bridgedata;
+                pmG2 -= redboost;
+                if (pmG2 < 0) {pmG2 = 0;}
+                pmG2 *= (255.0/55.0);
+                if (pmG2 > 255) {pmG2 = 255;}
                 
-                if (rgbON == true) {RGB.color(pmR, pmG, pmB);}
-                else {RGB.color(0, 0, 0);}
-                if (sliderValue > 55)
+                pmR2 = bridgedata;
+                if (pmR2 < 0) {pmR2 = 0;}
+                pmR2 *= (255.0/55.0);
+                
+                if (pmR2 > 255) {pmR2 = 255;}
+                
+                
+                pmB2 = bridgedata - 100;
+                if (pmB2 < 0) {pmB2 = 0;}
+                pmB2 *= (255.0/55.0);
+                if (pmB2 > 255) {pmB2 = 255;}
+
+                
+                Color PMled1color(pmR2, pmG2, pmB2);
+                RGB.color(pmR, pmG, pmB);
+
+                PMled1.setColor(PMled1color.withBrightness(LEDbrightness));
+                //PMled2.setColor(PMled2color.withBrightness(LEDbrightness));
+
+                
+                //if (rgbON == true) {RGB.color(pmR, pmG, pmB);}
+                //else {RGB.color(0, 0, 0);}
+                /*if (sliderValue > 55)
                     {
                         if (millis() - rgbmillis >= 500)
                         {
@@ -350,13 +615,36 @@ unsigned long now = millis();
                             rgbmillis = millis();
                         }
                     }
-                else rgbON = true;
-            }
-            else {RGB.color(0, 0, 0);}
-        }
-    if (menuValue == 3) {RGB.color(zebraR, zebraG, zebraB);}
-  
+                else rgbON = true;*/
 
+        }
+    if (menuValue == 3) {
+        RGB.color(zebraR, zebraG, zebraB);
+        Color PMled2color(zebraR, zebraG, zebraB);
+        //PMled2.setColor(PMled2color);
+        PMled1.setColor(PMled2color);
+        }
+
+    if  (millis() - samplemillis >= 1000) //if it's been 30 seconds OR we just booted up, skip the 30 second wait
+    {
+        samplemillis = millis();
+        wifiAvg.push(WiFi.RSSI());
+        a0Avg.push(analogRead(A0));
+          if (Time.hour() < 7)
+            {
+                RGB.brightness(0);
+                LEDbrightness = 0;
+            }
+        else
+        {
+            RGBbrightness = (((analogRead(A0) * 0.0005) * sliderRGBbrightness) + 1);
+            if (RGBbrightness > 255) {RGBbrightness = 255;}
+            LEDbrightness = ((analogRead(A0) * 0.0005) * sliderLEDbrightness) + sliderboostbrightness;
+            if (LEDbrightness > 100) {LEDbrightness = 100;}
+            if (LEDbrightness < 2) {LEDbrightness = 2;}
+            RGB.brightness(RGBbrightness);
+        }
+    }
   
     if  (millis() - millisBlynk >= 30000) //if it's been 30 seconds OR we just booted up, skip the 30 second wait
     {
@@ -379,6 +667,8 @@ unsigned long now = millis();
         sliderValue = new2p5; //set RGB value to pm25 value*/
         Blynk.virtualWrite(V5, pm1Avg.mean());
         Blynk.virtualWrite(V6, pm25Avg.mean());
+        bridge1.virtualWrite(V71, pm25Avg.mean());
+        bridge1.virtualWrite(V72, bridgedata);
         Blynk.virtualWrite(V7, pm10Avg.mean());
         Blynk.virtualWrite(V8, pms7003.GetData(pms7003.count0_3um));
         Blynk.virtualWrite(V9, pms7003.GetData(pms7003.count0_5um));
@@ -402,7 +692,8 @@ unsigned long now = millis();
         Blynk.virtualWrite(V30, bmegasPercentage);
 
         Blynk.virtualWrite(V33, gasBME);
-  
+        Blynk.virtualWrite(V34, wifiAvg.mean());
+        Blynk.virtualWrite(V69, a0Avg.mean());
         /*terminal.print("Last update: ");
         terminal.print(Time.timeStr()); //print current time to Blynk terminal
         terminal.println("");
@@ -433,6 +724,7 @@ unsigned long now = millis();
         pm1Avg.push(new1p0);
         pm25Avg.push(new2p5);
         pm10Avg.push(new10);
+        
         old1p0 = new1p0; //reset data spike check variable
         old2p5 = new2p5;
         old10 = new10;
@@ -449,7 +741,7 @@ void errLeds(void)
 
 }
 
-void loadState(void)
+/*void loadState(void)
 {
   if (EEPROM.read(0) == BSEC_MAX_STATE_BLOB_SIZE) {
     // Existing state in EEPROM
@@ -477,7 +769,43 @@ void loadState(void)
 
     //EEPROM.commit();
   }
+}*/
+
+bool loadState(Bsec2 bsec)
+{
+#ifdef USE_EEPROM
+    
+
+    if (EEPROM.read(0) == BSEC_MAX_STATE_BLOB_SIZE)
+    {
+        /* Existing state in EEPROM */
+        terminal.println("Reading state from EEPROM");
+        terminal.print("State file: ");
+        for (uint8_t i = 0; i < BSEC_MAX_STATE_BLOB_SIZE; i++)
+        {
+            bsecState[i] = EEPROM.read(i + 1);
+            terminal.print(String(bsecState[i], HEX) + "");
+        }
+        terminal.println();
+        terminal.flush();
+
+        if (!bsec.setState(bsecState))
+            return false;
+    } else
+    {
+        /* Erase the EEPROM with zeroes */
+        terminal.println("Erasing EEPROM");
+
+        for (uint8_t i = 0; i <= BSEC_MAX_STATE_BLOB_SIZE; i++)
+            EEPROM.write(i, 0);
+        terminal.flush();
+        //EEPROM.commit();
+    }
+#endif
+    return true;
 }
+
+
 
 void updateBsecState(Bsec2 bsec)
 {
