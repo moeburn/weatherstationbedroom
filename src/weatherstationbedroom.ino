@@ -14,7 +14,8 @@
 
 // This #include statement was automatically added by the Particle IDE.
 #include <PMS7003-Particle-Sensor-Serial.h>
-
+#include "NtpTime.h"
+NtpTime ntptime;
 
 #include <bsec2.h>
 
@@ -138,14 +139,14 @@ int timer1 = TTU; // How often to send sensor updates to Ubidots
 int screentime = (TTS / 1000);
 int debugcounter = 105;
 int firstvalue = 1;
-
+int blynkWait = 30000;
 int history = 2;
 int historycount = history;
 
 
 
 float sensor;
-float bridgedata;
+float bridgedata, bridgetemp, bridgehum;
 
 
 int last_pushed = 0; // global variable
@@ -173,7 +174,7 @@ bool rgbON = true;
 float LEDbrightness = 6; 
 float RGBbrightness = 6; 
 int sliderboostbrightness = 0; 
-int redboost = 19;
+int redboost = 0;
 int sliderLEDbrightness = 38; 
 int sliderRGBbrightness = 18;
 
@@ -188,6 +189,17 @@ BLYNK_WRITE(V61){
     float pinData = param.asFloat();
     bridgedata = pinData;
 }
+
+BLYNK_WRITE(V62){
+    bridgetemp = param.asFloat();
+
+}
+
+BLYNK_WRITE(V63){
+    bridgehum = param.asFloat();
+
+}
+
 
 
 
@@ -217,7 +229,7 @@ BLYNK_WRITE(V17)
             if (RGBbrightness > 255) {RGBbrightness = 255;}
             LEDbrightness = ((analogRead(A0) * 0.0005) * sliderLEDbrightness) + sliderboostbrightness;
             if (LEDbrightness > 100) {LEDbrightness = 100;}
-            if (LEDbrightness < 2) {LEDbrightness = 2;}
+            if (LEDbrightness < 6) {LEDbrightness = 6;}
             RGB.brightness(RGBbrightness);
         }
 }
@@ -247,7 +259,7 @@ BLYNK_WRITE(V21)
             if (RGBbrightness > 255) {RGBbrightness = 255;}
             LEDbrightness = ((analogRead(A0) * 0.0005) * sliderLEDbrightness) + sliderboostbrightness;
             if (LEDbrightness > 100) {LEDbrightness = 100;}
-            if (LEDbrightness < 2) {LEDbrightness = 2;}
+            if (LEDbrightness < 6) {LEDbrightness = 6;}
             RGB.brightness(RGBbrightness);
         }
 }
@@ -267,6 +279,7 @@ BLYNK_WRITE(V14)
     terminal.println("a1");
     terminal.println("a2");
     terminal.println("a3");
+    terminal.println("ledcycle");
     terminal.println("rapidon");
     terminal.println("rapidoff");
     terminal.println("redboost+");
@@ -283,6 +296,7 @@ BLYNK_WRITE(V14)
         terminal.println(WiFi.localIP());
         terminal.print("Signal strength: ");
         terminal.println(WiFi.RSSI());
+        terminal.println(Time.timeStr());
     }
 if (String("erase") == param.asStr()) 
         {
@@ -372,10 +386,14 @@ if (String("erase") == param.asStr())
         terminal.println("a3");
     }
     if (String("rapidon") == param.asStr()) {
-        rapidfire = true;
+        blynkWait = 50;
     }
     if (String("ledcycle") == param.asStr()) {
         ledcycle();
+        terminal.println();
+        terminal.print("Max frequency: ");
+        terminal.print(analogWriteMaxFrequency(LEDApin1));
+        terminal.println("hz.");
     }
 
     if (String("connect") == param.asStr()) {
@@ -384,7 +402,7 @@ if (String("erase") == param.asStr())
         while (!Particle.connected()) {
             terminal.print(".");
             terminal.flush();
-            delay(500);
+            delay(250);
             }
         terminal.println("connected.");
     }
@@ -396,7 +414,7 @@ if (String("erase") == param.asStr())
     
 
     if (String("rapidoff") == param.asStr()) {
-      rapidfire = false;
+      blynkWait = 30000;
     }
 
     if (String("redboost+") == param.asStr()) {
@@ -417,54 +435,24 @@ if (String("erase") == param.asStr())
 }
 
 void ledcycle(void) {
-
-analogWrite(LEDApin1, 255);
-delay(leddelay);
-analogWrite(LEDApin1, 0);
-
-analogWrite(LEDApin2, 255);
-delay(leddelay);
-analogWrite(LEDApin2, 0);
-
-analogWrite(LEDApin3, 255);
-delay(leddelay);
-analogWrite(LEDApin3, 0);
-
-analogWrite(LEDApin1, 255);
-analogWrite(LEDApin2, 255);
-delay(leddelay);
-analogWrite(LEDApin1, 0);
-analogWrite(LEDApin2, 0);
-
-analogWrite(LEDApin1, 255);
-analogWrite(LEDApin3, 255);
-delay(leddelay);
-analogWrite(LEDApin1, 0);
-analogWrite(LEDApin3, 0);
-
-analogWrite(LEDApin2, 255);
-analogWrite(LEDApin3, 255);
-delay(leddelay);
-analogWrite(LEDApin2, 0);
-analogWrite(LEDApin3, 0);
-
-analogWrite(LEDApin1, 255);
-analogWrite(LEDApin2, 255);
-analogWrite(LEDApin3, 255);
+analogWrite(LEDApin1, 127, 10);
+analogWrite(LEDApin2, 127, 10);
+analogWrite(LEDApin3, 127, 10);
 delay(leddelay);
 analogWrite(LEDApin1, 0);
 analogWrite(LEDApin2, 0);
 analogWrite(LEDApin3, 0);
-
-digitalWrite(LEDApin1, HIGH);
-digitalWrite(LEDApin2, HIGH);
-digitalWrite(LEDApin3, HIGH);
 delay(leddelay);
-digitalWrite(LEDApin1, LOW);
-digitalWrite(LEDApin2, LOW);
-digitalWrite(LEDApin3, LOW);
-	
+analogWrite(LEDApin1, 127, (analogWriteMaxFrequency(LEDApin1)/500));
+analogWrite(LEDApin2, 127, (analogWriteMaxFrequency(LEDApin2)/500));
+analogWrite(LEDApin3, 127, (analogWriteMaxFrequency(LEDApin3)/500));
+delay(leddelay);
+analogWrite(LEDApin1, 0);
+analogWrite(LEDApin2, 0);
+analogWrite(LEDApin3, 0);
 }
+
+
 
 SYSTEM_MODE(SEMI_AUTOMATIC);
 SYSTEM_THREAD(ENABLED);
@@ -479,7 +467,7 @@ void setup() { //This is where all Arduinos store the on-bootup code
   Wire.begin();
     iaqSensor.begin(BME68X_I2C_ADDR_HIGH, Wire);
   RGB.control(true); //Turn off Photon's pulsing blue LED
-
+ntptime.start();
 //	dht.begin();
   
    //Required to stabilize wifi
@@ -495,7 +483,7 @@ void setup() { //This is where all Arduinos store the on-bootup code
   output = "\nBSEC library version " + String(iaqSensor.version.major) + "." + String(iaqSensor.version.minor) + "." + String(iaqSensor.version.major_bugfix) + "." + String(iaqSensor.version.minor_bugfix);
                 //terminal.clear();
 				terminal.println("----------------------------------");
-				terminal.println("STARTING BEDROOM BLYNK SERVER v1.3");
+				terminal.println("STARTING BEDROOM BLYNK SERVER v1.6");
                 terminal.println(output);
 				terminal.println(Time.timeStr()); //print current time to Blynk terminal
                 terminal.println("----------------------------------");
@@ -551,11 +539,13 @@ unsigned long now = millis();
     Blynk.run();
        
   
-    if (rapidfire) 
+    /*if (rapidfire) 
     {
         Blynk.virtualWrite(V69, analogRead(A0));
-    }
+    }*/
 
+if(!WiFi.ready())
+{WiFi.connect();}
 
         
 
@@ -580,9 +570,10 @@ unsigned long now = millis();
 
                 pmG2 = 55 - bridgedata;
                 pmG2 -= redboost;
-                if (pmG2 < 0) {pmG2 = 0;}
                 pmG2 *= (255.0/55.0);
                 if (pmG2 > 255) {pmG2 = 255;}
+                pmG2 = pmG2 / 3;
+                if (pmG2 < 4) {pmG2 = 4;}
                 
                 pmR2 = bridgedata;
                 if (pmR2 < 0) {pmR2 = 0;}
@@ -620,7 +611,7 @@ unsigned long now = millis();
         }
     if (menuValue == 3) {
         RGB.color(zebraR, zebraG, zebraB);
-        Color PMled2color(zebraR, zebraG, zebraB);
+        Color PMled2color(zebraR, (zebraG/3), zebraB);
         //PMled2.setColor(PMled2color);
         PMled1.setColor(PMled2color);
         }
@@ -641,12 +632,12 @@ unsigned long now = millis();
             if (RGBbrightness > 255) {RGBbrightness = 255;}
             LEDbrightness = ((analogRead(A0) * 0.0005) * sliderLEDbrightness) + sliderboostbrightness;
             if (LEDbrightness > 100) {LEDbrightness = 100;}
-            if (LEDbrightness < 2) {LEDbrightness = 2;}
+            if (LEDbrightness < 6) {LEDbrightness = 6;}
             RGB.brightness(RGBbrightness);
         }
     }
-  
-    if  (millis() - millisBlynk >= 30000) //if it's been 30 seconds OR we just booted up, skip the 30 second wait
+    
+    if  (millis() - millisBlynk >= blynkWait) //if it's been blynkWait seconds 
     {
         pms7003.Read();
         //me.takeForcedMeasurement();
@@ -669,6 +660,8 @@ unsigned long now = millis();
         Blynk.virtualWrite(V6, pm25Avg.mean());
         bridge1.virtualWrite(V71, pm25Avg.mean());
         bridge1.virtualWrite(V72, bridgedata);
+        bridge1.virtualWrite(V73, bridgetemp);
+        bridge1.virtualWrite(V74, bridgehum);
         Blynk.virtualWrite(V7, pm10Avg.mean());
         Blynk.virtualWrite(V8, pms7003.GetData(pms7003.count0_3um));
         Blynk.virtualWrite(V9, pms7003.GetData(pms7003.count0_5um));
