@@ -17,6 +17,28 @@
 #include "NtpTime.h"
 NtpTime ntptime;
 
+#include "neopixel.h"
+
+
+// IMPORTANT: Set pixel COUNT, PIN and TYPE
+#if (PLATFORM_ID == 32)
+// MOSI pin MO
+#define PIXEL_PIN SPI
+// MOSI pin D2
+// #define PIXEL_PIN SPI1
+#else // #if (PLATFORM_ID == 32)
+#define PIXEL_PIN A4
+#endif
+#define PIXEL_COUNT 3
+#define PIXEL_TYPE WS2812B
+
+Adafruit_NeoPixel strip(PIXEL_COUNT, PIXEL_PIN, PIXEL_TYPE);
+
+// Prototypes for local build, ok to leave in for Build IDE
+void rainbow(uint8_t wait);
+uint32_t Wheel(byte WheelPos);
+
+
 #include <bsec2.h>
 
 #include "blynk.h"
@@ -32,7 +54,9 @@ using namespace RGBControls;
 //int LEDApin1 = A5;
 //int LEDApin2 = A7;
 
-int LEDApin3 = A4;
+
+
+int LEDApin3 = A0; //A4
 int LEDApin2 = A5;
 int LEDApin1 = A7;
 
@@ -170,6 +194,7 @@ int zebraR, zebraG, zebraB, sliderValue;
 int menuValue = 2;
 float  pmR, pmG, pmB;
 float  pmR2, pmG2, pmB2;
+float  pmR3, pmG3, pmB3;
 bool rgbON = true;
 float LEDbrightness = 6; 
 float RGBbrightness = 6; 
@@ -218,20 +243,7 @@ BLYNK_WRITE(V16)
 BLYNK_WRITE(V17)
 {
     sliderRGBbrightness = param.asInt();
-              if (Time.hour() < 7)
-            {
-                RGB.brightness(0);
-                LEDbrightness = 0;
-            }
-        else
-        {
-            RGBbrightness = (((analogRead(A0) * 0.0005) * sliderRGBbrightness) + 1);
-            if (RGBbrightness > 255) {RGBbrightness = 255;}
-            LEDbrightness = ((analogRead(A0) * 0.0005) * sliderLEDbrightness) + sliderboostbrightness;
-            if (LEDbrightness > 100) {LEDbrightness = 100;}
-            if (LEDbrightness < 6) {LEDbrightness = 6;}
-            RGB.brightness(RGBbrightness);
-        }
+
 }
 
 /*BLYNK_WRITE(V34)
@@ -248,20 +260,7 @@ BLYNK_WRITE(V35)
 BLYNK_WRITE(V21)
 {
     sliderLEDbrightness = param.asInt();
-              if (Time.hour() < 7)
-            {
-                RGB.brightness(0);
-                LEDbrightness = 0;
-            }
-        else
-        {
-            RGBbrightness = (((analogRead(A0) * 0.0005) * sliderRGBbrightness) + 1);
-            if (RGBbrightness > 255) {RGBbrightness = 255;}
-            LEDbrightness = ((analogRead(A0) * 0.0005) * sliderLEDbrightness) + sliderboostbrightness;
-            if (LEDbrightness > 100) {LEDbrightness = 100;}
-            if (LEDbrightness < 6) {LEDbrightness = 6;}
-            RGB.brightness(RGBbrightness);
-        }
+
 }
 
 
@@ -434,6 +433,25 @@ if (String("erase") == param.asStr())
 
 }
 
+BLYNK_WRITE(V40)
+{
+  int pinValue = param.asInt(); // assigning incoming value from pin V1 to a variable
+  
+  if (pinValue == 1){
+        Particle.connect();
+        terminal.print("> Connecting to Particle cloud...");
+        while (!Particle.connected()) {
+            terminal.print(".");
+            terminal.flush();
+            delay(250);
+            }
+        terminal.println("connected.");
+  } else if (pinValue == 0) {
+   // do something when button is released;
+  }
+
+}
+
 void ledcycle(void) {
 analogWrite(LEDApin1, 127, 10);
 analogWrite(LEDApin2, 127, 10);
@@ -459,9 +477,18 @@ SYSTEM_THREAD(ENABLED);
 
 
 void setup() { //This is where all Arduinos store the on-bootup code
+  strip.begin(); // Initialize NeoPixel strip object (REQUIRED)
+  strip.setPixelColor(2, strip.Color(100, 0, 0)); 
+   strip.show();
+          //  Set pixel's color (in RAM)
+    delay(250);
+    strip.setPixelColor(2, strip.Color(0, 0, 0));
+    strip.setPixelColor(1, strip.Color(100, 100, 0));
+  strip.show();
  WiFi.on();
   WiFi.connect() ;
   while (WiFi.connecting()){}
+
   Particle.disconnect();
   Serial.begin();
   Wire.begin();
@@ -471,14 +498,17 @@ ntptime.start();
 //	dht.begin();
   
    //Required to stabilize wifi
-    pinMode(LEDApin1, OUTPUT);
-    pinMode(LEDApin2, OUTPUT);
-    pinMode(LEDApin3, OUTPUT);
+   // pinMode(LEDApin1, OUTPUT);
+   // pinMode(LEDApin2, OUTPUT);
+   // pinMode(LEDApin3, OUTPUT);
 
 
 
   Blynk.begin(auth, IPAddress(216,110,224,105), 8080);
   Time.zone(-4);
+  strip.setPixelColor(1, strip.Color(0, 0, 0));
+  strip.setPixelColor(0, strip.Color(0, 100, 0)); 
+strip.show();
   delay(2000);
   output = "\nBSEC library version " + String(iaqSensor.version.major) + "." + String(iaqSensor.version.minor) + "." + String(iaqSensor.version.major_bugfix) + "." + String(iaqSensor.version.minor_bugfix);
                 //terminal.clear();
@@ -521,7 +551,10 @@ ntptime.start();
                 Adafruit_BME280::SAMPLING_X1, // pressure
                 Adafruit_BME280::SAMPLING_X1, // humidity
                 Adafruit_BME280::FILTER_OFF   );*/
-ledcycle();
+  strip.setPixelColor(0, strip.Color(0, 0, 0)); 
+  strip.setPixelColor(1, strip.Color(0, 0, 0)); 
+  strip.setPixelColor(2, strip.Color(0, 0, 0));         //  Set pixel's color (in RAM)
+  strip.show();    
 
 }
 
@@ -569,16 +602,14 @@ if(!WiFi.ready())
                 if (pmB > 255) {pmB = 255;}
 
                 pmG2 = 55 - bridgedata;
-                pmG2 -= redboost;
+                if (pmG2 < 0) {pmG2 = 0;}
                 pmG2 *= (255.0/55.0);
                 if (pmG2 > 255) {pmG2 = 255;}
-                pmG2 = pmG2 / 3;
-                if (pmG2 < 4) {pmG2 = 4;}
+                
                 
                 pmR2 = bridgedata;
                 if (pmR2 < 0) {pmR2 = 0;}
                 pmR2 *= (255.0/55.0);
-                
                 if (pmR2 > 255) {pmR2 = 255;}
                 
                 
@@ -588,10 +619,36 @@ if(!WiFi.ready())
                 if (pmB2 > 255) {pmB2 = 255;}
 
                 
-                Color PMled1color(pmR2, pmG2, pmB2);
-                RGB.color(pmR, pmG, pmB);
 
-                PMled1.setColor(PMled1color.withBrightness(LEDbrightness));
+                pmG3 = 155 - bmeiaq;
+                if (pmG3 < 0) {pmG3 = 0;}
+                pmG3 *= (255.0/155.0);
+                if (pmG3 > 255) {pmG3 = 255;}
+                
+                
+                pmR3 = bmeiaq;
+                if (pmR3 < 0) {pmR3 = 0;}
+                pmR3 *= (255.0/155.0);
+                if (pmR3 > 255) {pmR3 = 255;}
+                
+                
+                pmB3 = bmeiaq - 155;
+                if (pmB3 < 0) {pmB3 = 0;}
+                pmB3 *= (255.0/155.0);
+                if (pmB3 > 255) {pmB3 = 255;}
+
+                //Color PMled1color(pmR2, pmG2, pmB2);
+                RGB.color(0, 0, 0);
+
+                //PMled1.setColor(PMled1color.withBrightness(LEDbrightness));
+                strip.setBrightness(LEDbrightness);
+                strip.setPixelColor(2, strip.Color(pmR3, pmG3, pmB3)); 
+                  strip.setPixelColor(0, strip.Color(pmR, pmG, pmB)); 
+                strip.setPixelColor(1, strip.Color(pmR2, pmG2, pmB2)); 
+
+                //strip.setColorDimmed(1, pmR, pmG, pmB, RGBbrightness);
+                //strip.setColorDimmed(2, pmR2, pmG2, pmB2, RGBbrightness);
+                strip.show();  
                 //PMled2.setColor(PMled2color.withBrightness(LEDbrightness));
 
                 
@@ -611,9 +668,14 @@ if(!WiFi.ready())
         }
     if (menuValue == 3) {
         RGB.color(zebraR, zebraG, zebraB);
-        Color PMled2color(zebraR, (zebraG/3), zebraB);
+        //Color PMled2color(zebraR, (zebraG/3), zebraB);
         //PMled2.setColor(PMled2color);
-        PMled1.setColor(PMled2color);
+        //PMled1.setColor(PMled2color);
+                        strip.setBrightness(sliderLEDbrightness);
+                strip.setPixelColor(0, strip.Color(zebraR, zebraG, zebraB)); 
+                strip.setPixelColor(1, strip.Color(zebraR, zebraG, zebraB));
+                strip.setPixelColor(2, strip.Color(zebraR, zebraG, zebraB));
+                strip.show();  
         }
 
     if  (millis() - samplemillis >= 1000) //if it's been 30 seconds OR we just booted up, skip the 30 second wait
@@ -631,8 +693,8 @@ if(!WiFi.ready())
             RGBbrightness = (((analogRead(A0) * 0.0005) * sliderRGBbrightness) + 1);
             if (RGBbrightness > 255) {RGBbrightness = 255;}
             LEDbrightness = ((analogRead(A0) * 0.0005) * sliderLEDbrightness) + sliderboostbrightness;
-            if (LEDbrightness > 100) {LEDbrightness = 100;}
-            if (LEDbrightness < 6) {LEDbrightness = 6;}
+            if (LEDbrightness > 255) {LEDbrightness = 255;}
+            if (LEDbrightness < 1) {LEDbrightness = 1;}
             RGB.brightness(RGBbrightness);
         }
     }
