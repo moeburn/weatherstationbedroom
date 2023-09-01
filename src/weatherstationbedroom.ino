@@ -137,8 +137,8 @@ String output;
 WidgetTerminal terminal(V14); //terminal widget
 WidgetBridge bridge1(V70);
 
-char auth[] = "eT_7FL7IUpqonthsAr-58uTK_-su_GYy"; //BLYNK
-char remoteAuth[] = "pO--Yj8ksH2fjJLMW6yW9trkHBhd9-wc";
+char auth[] = "xxxxxxxxxxxxxxxxxxxxxx; //BLYNK
+char remoteAuth[] = "xxxxxxxxxxxxxxxxxxxx";
 
 BLYNK_CONNECTED() {
   bridge1.setAuthToken (remoteAuth);
