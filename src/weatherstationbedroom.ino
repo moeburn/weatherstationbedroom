@@ -504,7 +504,7 @@ ntptime.start();
 
 
 
-  Blynk.begin(auth, IPAddress(216,110,224,105), 8080);
+  Blynk.begin(auth, IPAddress(xxx,xxx,xxx,xxx), 8080);
   Time.zone(-4);
   strip.setPixelColor(1, strip.Color(0, 0, 0));
   strip.setPixelColor(0, strip.Color(0, 100, 0)); 
